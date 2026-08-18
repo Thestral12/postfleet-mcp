@@ -4,7 +4,10 @@ Give an AI agent its own email address. [Postfleet](https://postfleet.ai) is ema
 agents — inbound is parsed, classified, extracted to your schema, and screened for prompt injection
 before your agent reads a word.
 
-This repo is the plugin manifest. The server itself ships two ways:
+This repo holds the server source and its plugin manifests. It is a **mirror** — the code is
+developed in the Postfleet application repo and published to npm as
+[`@postfleet/mcp`](https://www.npmjs.com/package/@postfleet/mcp); open issues here, send patches
+here, and they land upstream. The server ships two ways:
 
 | | |
 |---|---|
@@ -75,5 +78,11 @@ rest. Never commit a key; the manifests in this repo deliberately contain none.
 - Registry listing: `ai.postfleet/postfleet` on the [MCP Registry](https://registry.modelcontextprotocol.io)
 - npm: [`@postfleet/mcp`](https://www.npmjs.com/package/@postfleet/mcp)
 - Docs: [postfleet.ai/docs/mcp](https://postfleet.ai/docs/mcp)
+
+## Build from source
+
+```bash
+npm install && npm run build   # tsup → dist/
+```
 
 MIT licensed.

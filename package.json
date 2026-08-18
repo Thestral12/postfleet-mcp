@@ -1,0 +1,50 @@
+{
+  "name": "@postfleet/mcp",
+  "version": "0.1.2",
+  "mcpName": "ai.postfleet/postfleet",
+  "description": "Local (stdio) MCP server for Postfleet — email tools for AI agents.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Thestral12/postfleet-mcp.git"
+  },
+  "homepage": "https://postfleet.ai",
+  "bugs": "https://github.com/Thestral12/postfleet-mcp/issues",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "bin": {
+    "postfleet-mcp": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "postfleet",
+    "email",
+    "agents"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5"
+  }
+}
