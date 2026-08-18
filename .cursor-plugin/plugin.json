@@ -1,0 +1,11 @@
+{
+  "name": "postfleet",
+  "displayName": "Postfleet",
+  "description": "Give an AI agent its own email address: send, reply, read, and wait for mail.",
+  "version": "0.1.2",
+  "author": { "name": "Postfleet", "url": "https://postfleet.ai" },
+  "homepage": "https://postfleet.ai",
+  "repository": "https://github.com/Thestral12/postfleet-mcp",
+  "license": "MIT",
+  "keywords": ["email", "inbox", "mcp", "agents"]
+}

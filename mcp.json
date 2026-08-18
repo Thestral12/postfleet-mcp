@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "postfleet": {
+      "type": "streamable-http",
+      "url": "https://api.postfleet.ai/api/mcp"
+    },
+    "postfleet-local": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@postfleet/mcp"]
+    }
+  }
+}
