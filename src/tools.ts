@@ -17,6 +17,17 @@ export async function listMailboxes(ctx: ToolCtx) {
   return callRest(ctx, 'GET', '/api/v1/mailboxes');
 }
 
+// Domain add is REST-only without these: list_domains can only see what already exists. Mapped
+// provider/duplicate statuses (400/409/502/503) become ToolError via callRest. Other upstream
+// statuses, including 500, use the generic fallback — this wrapper does not invent a 500 mapper.
+export async function createDomain(ctx: ToolCtx, args: { name: string }) {
+  return callRest(ctx, 'POST', '/api/v1/domains', args);
+}
+
+export async function verifyDomain(ctx: ToolCtx, args: { id: string }) {
+  return callRest(ctx, 'POST', `/api/v1/domains/${encodeURIComponent(args.id)}/verify`, {});
+}
+
 // A send on an approval-gated mailbox does NOT error — it returns HTTP 202 with the draft shape
 // below (queued for a human), which callRest passes through unchanged. The union keeps the
 // draft_id visible to callers so an agent can tell "queued for approval" from "sent".

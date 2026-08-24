@@ -18,20 +18,26 @@ Get a `pf_` API key at [postfleet.ai](https://postfleet.ai).
 
 ## Tools
 
-`list_mailboxes`, `create_mailbox`, `list_domains`, `send_email`, `reply_email`, `list_inbox`,
-`read_email`, `wait_for_email` — plus the draft lifecycle (`create_draft`, `list_drafts`,
-`get_draft`, `update_draft`, `send_draft`, `delete_draft`) for flows where a human approves
-before mail goes out. A send that lands in that gate returns **202 pending_approval**, which is
-not a failure.
+`list_mailboxes`, `create_mailbox`, `list_domains`, `create_domain`, `verify_domain`,
+`send_email`, `reply_email`, `list_inbox`, `read_email`, `wait_for_email` — plus the draft
+lifecycle (`create_draft`, `list_drafts`, `get_draft`, `update_draft`, `send_draft`,
+`delete_draft`) for flows where a human approves before mail goes out. A send that lands in
+that gate returns **202 pending_approval**, which is not a failure.
 
 Every tool is thin-over-REST — it calls the same `/api/v1/` endpoints your key already reaches
 ([OpenAPI](https://postfleet.ai/openapi.json)), so auth, scoping, and quotas are enforced once.
 
 ## Install
 
-### Cursor
+### Cursor marketplace plugin
 
-The manifest in this repo declares both transports. To wire it up by hand, add your key:
+The manifests in this repo (`mcp.json`, `.cursor-plugin/plugin.json`) declare
+`headers.Authorization = Bearer ${POSTFLEET_API_KEY}` for the hosted server and the same
+variable for local `npx @postfleet/mcp`. Installing the plugin should prompt for that key and
+attach it as a real Bearer header — a raw URL add without the header will 401 on
+`initialize` until a key is supplied or the hosted connect card finishes OAuth.
+
+### Cursor (manual)
 
 ```json
 {
@@ -44,13 +50,13 @@ The manifest in this repo declares both transports. To wire it up by hand, add y
 }
 ```
 
-### Claude Code
+### Local stdio (`npx -y @postfleet/mcp`)
 
 ```bash
-claude mcp add postfleet --env POSTFLEET_API_KEY=pf_your_key_here -- npx -y @postfleet/mcp
+npx -y @postfleet/mcp
 ```
 
-### Any stdio client
+Any MCP client that speaks stdio can run that command with `POSTFLEET_API_KEY` set:
 
 ```json
 {
@@ -62,6 +68,12 @@ claude mcp add postfleet --env POSTFLEET_API_KEY=pf_your_key_here -- npx -y @pos
     }
   }
 }
+```
+
+### Claude Code
+
+```bash
+claude mcp add postfleet --env POSTFLEET_API_KEY=pf_your_key_here -- npx -y @postfleet/mcp
 ```
 
 `POSTFLEET_API_URL` (default `https://api.postfleet.ai`) overrides the API origin for staging or

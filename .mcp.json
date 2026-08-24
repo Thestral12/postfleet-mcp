@@ -3,12 +3,18 @@
   "mcpServers": {
     "postfleet": {
       "type": "streamable-http",
-      "url": "https://api.postfleet.ai/api/mcp"
+      "url": "https://api.postfleet.ai/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${POSTFLEET_API_KEY}"
+      }
     },
     "postfleet-local": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@postfleet/mcp"]
+      "args": ["-y", "@postfleet/mcp"],
+      "env": {
+        "POSTFLEET_API_KEY": "${POSTFLEET_API_KEY}"
+      }
     }
   }
 }

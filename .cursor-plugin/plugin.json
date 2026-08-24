@@ -2,7 +2,7 @@
   "name": "postfleet",
   "displayName": "Postfleet",
   "description": "Give an AI agent its own email address: send, reply, read, and wait for mail.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "author": {
     "name": "Postfleet",
     "url": "https://postfleet.ai"
@@ -16,5 +16,13 @@
     "mcp",
     "agents"
   ],
-  "logo": "assets/logo.png"
+  "logo": "assets/logo.png",
+  "userConfig": {
+    "POSTFLEET_API_KEY": {
+      "type": "string",
+      "description": "Postfleet API key (pf_...) from https://postfleet.ai. Sent as Authorization: Bearer on the hosted MCP, or as POSTFLEET_API_KEY for the local npx server.",
+      "sensitive": true,
+      "required": true
+    }
+  }
 }

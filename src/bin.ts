@@ -22,7 +22,7 @@ const origin = process.env.POSTFLEET_API_URL?.trim().replace(/\/+$/, '') || 'htt
 // Read from the shipped package.json so serverInfo.version never drifts from the release.
 // Sibling of dist/bin.js in both the workspace and the published tarball.
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string };
-const server = new McpServer({ name: 'postfleet', version });
+const server = new McpServer({ name: 'Postfleet', version });
 // Cast mirrors the hosted route: McpServer.tool structurally matches McpServerLike.
 registerTools(server as unknown as McpServerLike, { origin, token });
 

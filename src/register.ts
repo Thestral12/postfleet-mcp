@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ToolError, type ToolCtx } from './context';
-import { createMailbox, listMailboxes, listDomains, sendEmail, replyEmail, listInbox, readEmail, waitForEmail, createDraft, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft } from './tools';
+import { createMailbox, listMailboxes, listDomains, createDomain, verifyDomain, sendEmail, replyEmail, listInbox, readEmail, waitForEmail, createDraft, listDrafts, getDraft, updateDraft, deleteDraft, sendDraft } from './tools';
 
 // Mirrors the REST SendRequest constraint: the `draft:` prefix is reserved for the synthetic
 // idempotency keys the approval flow mints (`draft:{id}:a{n}`, spec P5). REQUIRED here even though
@@ -65,8 +65,8 @@ const wrap = (fn: (args: never) => Promise<unknown>) => async (args: unknown): P
 
 // Tool descriptions are product UX (spec §5 Lovable) — each says WHEN to call it.
 export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
-  // Registered first: it is the discovery entry point — six of the other thirteen tools take a
-  // mailbox_id directly, and the rest consume ids reached through those (message_id, draft id).
+  // Registered first: it is the discovery entry point — most other tools take a mailbox_id
+  // directly, and the rest consume ids reached through those (message_id, draft id, domain id).
   // Listing tools first also nudges agents to reuse an existing mailbox over creating one.
   server.registerTool(
     'list_mailboxes',
@@ -108,6 +108,31 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
       annotations: READ_ONLY,
     },
     wrap(() => listDomains(ctx)),
+  );
+  server.registerTool(
+    'create_domain',
+    {
+      description:
+        'Register a NEW custom sending domain on this account. Call this when list_domains does not already include the domain you want to host mailboxes on. Returns the domain id, verification status, and the DNS records to add at your registrar. The domain stays pending until those records are in place — call verify_domain after publishing them. Custom domains require a paid plan. A name that is already registered with Postfleet or the email provider is a conflict, not a success; do not retry with the same name.',
+      inputSchema: {
+        name: z.string().min(1).max(253)
+          .describe('Domain name to register, e.g. mail.example.com or example.com. Protocol and path are stripped if present.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    wrap((a) => createDomain(ctx, a)),
+  );
+  server.registerTool(
+    'verify_domain',
+    {
+      description:
+        'Re-check DNS for a custom domain and refresh its verification status. Call this after adding the records returned by create_domain, or when list_domains still shows pending and you believe DNS has propagated. Returns the current status (pending, verified, or failed). Only a verified domain can be passed to create_mailbox as domain_id.',
+      inputSchema: {
+        id: z.uuid().describe('Id of the domain to verify, from list_domains or create_domain.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    wrap((a) => verifyDomain(ctx, a)),
   );
   server.registerTool(
     'send_email',
