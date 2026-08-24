@@ -126,7 +126,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
     'verify_domain',
     {
       description:
-        'Re-check DNS for a custom domain and refresh its verification status. Call this after adding the records returned by create_domain, or when list_domains still shows pending and you believe DNS has propagated. Returns the current status (pending, verified, or failed). Only a verified domain can be passed to create_mailbox as domain_id.',
+        'Re-check DNS for a custom domain and refresh its verification status. Call this when you have added the records returned by create_domain, or when list_domains still shows pending and you believe DNS has propagated. Returns the current status (pending, verified, or failed). Only a verified domain can be passed to create_mailbox as domain_id.',
       inputSchema: {
         id: z.uuid().describe('Id of the domain to verify, from list_domains or create_domain.'),
       },
