@@ -1,0 +1,76 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "ai.postfleet/postfleet",
+  "title": "Postfleet",
+  "description": "Give an AI agent its own email address: send, reply, read, and wait for mail.",
+  "version": "0.1.3",
+  "websiteUrl": "https://postfleet.ai",
+  "icons": [
+    {
+      "src": "https://postfleet.ai/apple-icon.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "180x180"
+      ]
+    },
+    {
+      "src": "https://postfleet.ai/icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/Thestral12/postfleet-mcp",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.postfleet.ai/api/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer auth with your Postfleet API key.",
+          "isRequired": true,
+          "value": "Bearer {postfleet_api_key}",
+          "variables": {
+            "postfleet_api_key": {
+              "description": "Your Postfleet API key (pf_...) from https://postfleet.ai",
+              "isRequired": true,
+              "isSecret": true,
+              "format": "string"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@postfleet/mcp",
+      "version": "0.1.3",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "POSTFLEET_API_KEY",
+          "description": "Your Postfleet API key (pf_...) from https://postfleet.ai",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "POSTFLEET_API_URL",
+          "description": "API origin override for staging or self-hosted deployments",
+          "isRequired": false,
+          "default": "https://api.postfleet.ai",
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

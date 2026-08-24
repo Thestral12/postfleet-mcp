@@ -10,12 +10,15 @@ export class ToolError extends Error {
 
 // Agent-recoverable messages per status (spec §8: no stack traces, no bare codes).
 const STATUS_HINTS: Record<number, [string, string]> = {
+  400: ['Invalid request', 'Check the domain name or other inputs and retry.'],
   401: ['Invalid or missing API key', 'Check the Authorization header contains a valid pf_ key.'],
-  403: ['This API key cannot perform that action', 'Bootstrap keys can only create mailboxes; use an api-scope key for other tools.'],
+  403: ['This API key cannot perform that action', 'Bootstrap keys can only create mailboxes; custom domains need a paid plan and an api- or mcp-scope key.'],
   402: ['Monthly quota exhausted', 'The account hit its send/extraction quota. See plans at https://postfleet.ai/pricing or wait for the monthly reset.'],
-  404: ['Not found', 'The mailbox or message id does not exist or belongs to another account.'],
+  404: ['Not found', 'The mailbox, message, or domain id does not exist or belongs to another account.'],
+  409: ['Already registered', 'That domain is already attached to a Postfleet account or the email provider. Use list_domains, or contact support to attach an existing provider domain.'],
   422: ['Recipient is suppressed', 'This address previously bounced, complained, or unsubscribed. Postfleet will not send to it.'],
   502: ['Email provider is temporarily unavailable', 'This is transient — retry the same call in a few seconds.'],
+  503: ['Email provider is not configured', 'The hosted API cannot register domains right now. Retry later or add the domain in the dashboard.'],
 };
 
 export async function callRest(ctx: ToolCtx, method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: object): Promise<unknown> {
