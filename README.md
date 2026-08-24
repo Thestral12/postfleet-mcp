@@ -50,11 +50,13 @@ attach it as a real Bearer header — a raw URL add without the header will 401 
 }
 ```
 
-### Local stdio (`npx @postfleet/mcp`)
+### Local stdio (`npx -y @postfleet/mcp`)
 
 ```bash
-claude mcp add postfleet --env POSTFLEET_API_KEY=pf_your_key_here -- npx -y @postfleet/mcp
+npx -y @postfleet/mcp
 ```
+
+Any MCP client that speaks stdio can run that command with `POSTFLEET_API_KEY` set:
 
 ```json
 {
@@ -66,6 +68,12 @@ claude mcp add postfleet --env POSTFLEET_API_KEY=pf_your_key_here -- npx -y @pos
     }
   }
 }
+```
+
+### Claude Code
+
+```bash
+claude mcp add postfleet --env POSTFLEET_API_KEY=pf_your_key_here -- npx -y @postfleet/mcp
 ```
 
 `POSTFLEET_API_URL` (default `https://api.postfleet.ai`) overrides the API origin for staging or

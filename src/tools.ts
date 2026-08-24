@@ -17,8 +17,9 @@ export async function listMailboxes(ctx: ToolCtx) {
   return callRest(ctx, 'GET', '/api/v1/mailboxes');
 }
 
-// Domain add is REST-only without these: list_domains can only see what already exists. Provider
-// failures and duplicates come back as ToolError via callRest (400/409/502/503), never as a raw 500.
+// Domain add is REST-only without these: list_domains can only see what already exists. Mapped
+// provider/duplicate statuses (400/409/502/503) become ToolError via callRest. Other upstream
+// statuses, including 500, use the generic fallback — this wrapper does not invent a 500 mapper.
 export async function createDomain(ctx: ToolCtx, args: { name: string }) {
   return callRest(ctx, 'POST', '/api/v1/domains', args);
 }
