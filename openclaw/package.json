@@ -1,0 +1,26 @@
+{
+  "name": "@postfleet/postfleet",
+  "version": "1.0.0",
+  "description": "Postfleet email tools for OpenClaw — MCP server plus a skill that teaches an agent to use it.",
+  "type": "module",
+  "homepage": "https://postfleet.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Thestral12/postfleet-mcp.git"
+  },
+  "license": "MIT",
+  "keywords": ["openclaw", "openclaw-plugin", "mcp", "email", "postfleet"],
+  "peerDependencies": {
+    "openclaw": ">=2026.8.2"
+  },
+  "openclaw": {
+    "extensions": ["./index.js"],
+    "compat": {
+      "pluginApi": ">=2026.8.2"
+    },
+    "build": {
+      "openclawVersion": "2026.8.2"
+    }
+  },
+  "files": ["openclaw.plugin.json", "index.js", "skills", "README.md", "LICENSE"]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "postfleet",
+  "name": "Postfleet",
+  "description": "Give an AI agent its own email address: send, reply, read, and wait for mail.",
+  "icon": "https://postfleet.ai/apple-icon.png",
+  "skills": ["./skills/postfleet"],
+  "mcpServers": {
+    "postfleet": {
+      "transport": "streamable-http",
+      "url": "https://api.postfleet.ai/api/mcp",
+      "headers": { "Authorization": "Bearer ${POSTFLEET_API_KEY}" }
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
