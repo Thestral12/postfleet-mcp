@@ -1,6 +1,6 @@
 {
   "name": "@postfleet/mcp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "mcpName": "ai.postfleet/postfleet",
   "description": "Local (stdio) MCP server for Postfleet — email tools for AI agents.",
   "repository": {
