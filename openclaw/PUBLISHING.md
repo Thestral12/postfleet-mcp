@@ -3,8 +3,9 @@
 This is an OpenClaw **code plugin** (family `code-plugin`) with no real runtime: the
 MCP server and the skill are declared statically in `openclaw.plugin.json`.
 
-It is **not** an npm package. Do not `npm publish` from this folder; the npm artifact is
-`packages/mcp` (`@postfleet/mcp`), published separately.
+It is **not** an npm package. Do not `npm publish` from this folder. The npm artifact is
+`@postfleet/mcp`, published separately — it lives at `packages/mcp` in the private
+monorepo and at the repository root in the public `postfleet-mcp` mirror.
 
 ## Why it is shaped this way
 
@@ -18,9 +19,9 @@ Two constraints pull in opposite directions, and only this shape satisfies both:
   (`package.json missing openclaw.extensions`).
 
 So the package carries the native manifest plus a no-op `index.js` entry. Verified
-against `openclaw@2026.8.2` and `clawhub@0.23.3`: `plugins inspect postfleet --runtime`
-reports `Status: loaded`, `Format: openclaw`, and the `postfleet` MCP server, and
-`skills list` shows the skill as ready.
+against `openclaw@2026.8.2` and `clawhub@0.23.3`: `openclaw plugins inspect postfleet
+--runtime` reports `Status: loaded`, `Format: openclaw`, and the `postfleet` MCP server, and
+`openclaw skills list` shows the skill as ready.
 
 ## One-time setup
 
@@ -43,9 +44,10 @@ nobody outside the org can open. Publish from a commit in the public
 [postfleet-mcp](https://github.com/Thestral12/postfleet-mcp) repo, not from the private
 monorepo.
 
-This monorepo folder is the source of truth. The public repo carries a copy at
-`openclaw/`, mirrored by hand at release time — the same arrangement `packages/mcp`
-has with that repo. Copy the files across before publishing.
+The private monorepo (`packages/openclaw-plugin`) is the source of truth. The public
+repo carries the publishable mirror at `openclaw/`, copied across by hand at release
+time — the same arrangement `@postfleet/mcp` already has. Sync the files before
+publishing.
 
 ## Each release
 
@@ -58,22 +60,29 @@ tries to pack for you, so pack by hand and publish the tarball. Also pass **abso
 paths**: the CLI resolves relative ones against its own skills workdir and reports
 `Path must be a package folder`.
 
+`npm pack` names the tarball from the current version, so derive the path rather than
+typing it — otherwise these commands go stale the moment you bump.
+
 ```bash
 cd openclaw   # in the postfleet-mcp checkout
-npm pack --pack-destination /tmp
+TGZ=/tmp/$(npm pack --silent --pack-destination /tmp)
+SHA=$(git rev-parse HEAD)
 
 clawhub package validate "$PWD"
-clawhub package publish /tmp/postfleet-postfleet-1.0.0.tgz \
+clawhub package publish "$TGZ" \
   --family code-plugin --owner postfleet \
-  --source-repo Thestral12/postfleet-mcp --source-commit <sha> \
+  --source-repo Thestral12/postfleet-mcp --source-commit "$SHA" \
   --source-path openclaw --dry-run
 
-clawhub package publish /tmp/postfleet-postfleet-1.0.0.tgz \
+clawhub package publish "$TGZ" \
   --family code-plugin --owner postfleet \
-  --source-repo Thestral12/postfleet-mcp --source-commit <sha> \
+  --source-repo Thestral12/postfleet-mcp --source-commit "$SHA" \
   --source-path openclaw \
   --categories tools --topics "email,mailbox,inbox" --wait
 ```
+
+`$SHA` has to be a commit that is **pushed** to the public repo, so run this from a
+clean checkout of the merged branch, not a local-only commit.
 
 `--wait` blocks until ClawHub's automated security checks finish. New releases stay out
 of public install surfaces until they pass, so a successful upload is not yet a live
@@ -91,9 +100,15 @@ re-publish keeps the stored value; passing `""` clears it.
 
 ## Compatibility
 
-`openclaw.compat.pluginApi` and `openclaw.build.openclawVersion` are pinned to
-`2026.8.2`. Bump them when you retest against a newer OpenClaw; ClawHub validates them
-explicitly and does not fall back to `package.json.version`.
+`openclaw.compat.pluginApi` is a **range** (`>=2026.8.2`) — the plugin API floor it
+needs, deliberately open at the top so a newer OpenClaw can still install it. Pinning it
+to an exact version would claim compatibility with that release alone.
+`openclaw.build.openclawVersion` is the exact version it was built and tested against,
+`2026.8.2`.
+
+Raise the floor only when you rely on something newer; refresh `openclawVersion` every
+time you retest. ClawHub validates both explicitly and does not fall back to
+`package.json.version`.
 
 ## Trusted publishing (optional, later)
 

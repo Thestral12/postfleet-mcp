@@ -29,8 +29,8 @@ You should see `Status: loaded`, `Format: openclaw`, and `postfleet` under
 
 `openclaw.plugin.json` declares the hosted server:
 
-| | |
-|---|---|
+| Setting | Value |
+| --- | --- |
 | URL | `https://api.postfleet.ai/api/mcp` |
 | Transport | `streamable-http` |
 | Auth | `Authorization: Bearer ${POSTFLEET_API_KEY}` |
@@ -55,4 +55,6 @@ Cursor and Agent-Plugins-compatible hosts are served by the manifests in the pub
 
 ## Publishing
 
-See [PUBLISHING.md](./PUBLISHING.md).
+The release runbook is not part of the published package. It lives at
+[`openclaw/PUBLISHING.md`](https://github.com/Thestral12/postfleet-mcp/blob/main/openclaw/PUBLISHING.md)
+in the repo.
