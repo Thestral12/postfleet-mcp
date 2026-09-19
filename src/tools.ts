@@ -36,11 +36,15 @@ type SendResult = { id: string; thread_id: string } | { draft_id: string; status
 // stored outcome instead of sending again. Without it, an agent retrying after a network failure
 // that struck AFTER the API accepted the send would deliver the email twice. Required at the MCP
 // layer (REST keeps it optional): protection an agent can silently skip is protection it will skip.
-export async function sendEmail(ctx: ToolCtx, args: { mailbox_id: string; to: string; subject: string; text: string; client_id: string }) {
+type OutboundAttachment =
+  | { filename?: string; content: string; content_type?: string }
+  | { filename?: string; url: string; content_type?: string };
+
+export async function sendEmail(ctx: ToolCtx, args: { mailbox_id: string; to: string; subject: string; text: string; client_id: string; attachments?: OutboundAttachment[] }) {
   return (await callRest(ctx, 'POST', '/api/v1/send', args)) as SendResult;
 }
 
-export async function replyEmail(ctx: ToolCtx, args: { mailbox_id: string; reply_to_message_id: string; text: string; client_id: string }) {
+export async function replyEmail(ctx: ToolCtx, args: { mailbox_id: string; reply_to_message_id: string; text: string; client_id: string; attachments?: OutboundAttachment[] }) {
   return (await callRest(ctx, 'POST', '/api/v1/send', args)) as SendResult;
 }
 
@@ -48,7 +52,7 @@ export async function replyEmail(ctx: ToolCtx, args: { mailbox_id: string; reply
 // sent later with sendDraft, or forwarded to a human when the mailbox requires approval.
 export async function createDraft(
   ctx: ToolCtx,
-  args: { mailbox_id: string; to?: string; subject?: string; text: string; reply_to_message_id?: string },
+  args: { mailbox_id: string; to?: string; subject?: string; text: string; reply_to_message_id?: string; attachments?: OutboundAttachment[] },
 ) {
   return (await callRest(ctx, 'POST', '/api/v1/drafts', args)) as { id: string; status: string };
 }
@@ -65,7 +69,7 @@ export async function getDraft(ctx: ToolCtx, args: { id: string }) {
 }
 
 // reply_to_message_id is immutable server-side (re-targeting a reply can't re-thread) — not accepted here.
-export async function updateDraft(ctx: ToolCtx, args: { id: string; to?: string; subject?: string; text?: string }) {
+export async function updateDraft(ctx: ToolCtx, args: { id: string; to?: string; subject?: string; text?: string; attachments?: OutboundAttachment[] }) {
   const { id, ...body } = args;
   return callRest(ctx, 'PATCH', `/api/v1/drafts/${encodeURIComponent(id)}`, body);
 }

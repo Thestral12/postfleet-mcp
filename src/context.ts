@@ -69,8 +69,16 @@ export async function callRest(ctx: ToolCtx, method: 'GET' | 'POST' | 'PATCH' | 
   }
   const json = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
   if (!res.ok) {
+    // hasOwnProperty, not a bare lookup: an unexpected code that collides with an
+    // Object.prototype member ("toString", "constructor") would otherwise resolve to a
+    // function and make the destructuring throw a raw TypeError — the one thing this
+    // module exists to prevent.
+    const codeHint =
+      json.code && Object.prototype.hasOwnProperty.call(CODE_HINTS, json.code)
+        ? CODE_HINTS[json.code]
+        : undefined;
     const [msg, hint] =
-      (json.code ? CODE_HINTS[json.code] : undefined) ??
+      codeHint ??
       STATUS_HINTS[res.status] ?? [`Request failed (${res.status})`, json.error ?? 'Retry or check inputs.'];
     throw new ToolError(json.error ? `${msg}: ${json.error}` : msg, hint);
   }
