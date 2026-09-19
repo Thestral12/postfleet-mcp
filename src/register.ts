@@ -68,7 +68,7 @@ const READ_ONLY: ToolAnnotations = { readOnlyHint: true, idempotentHint: true, o
 // claim by a different mechanism — see its own annotation.
 const SEND: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
-const ok = (data: unknown): ToolResult => ({ content: [{ type: 'text'; text: JSON.stringify(data) }] });
+const ok = (data: unknown): ToolResult => ({ content: [{ type: 'text', text: JSON.stringify(data) }] });
 // Outer param is `unknown` (not `never`) so this matches McpServerLike's cb slot under strict
 // function-argument checking; the `never`-typed `fn` still lets each call site above stay
 // untyped (`wrap((a) => createMailbox(ctx, a))`) — the internal cast bridges the two.
@@ -78,7 +78,7 @@ const wrap = (fn: (args: never) => Promise<unknown>) => async (args: unknown): P
   } catch (e) {
     // spec §8: errors an agent can recover from — message + hint, never a stack trace
     const msg = e instanceof ToolError ? `${e.message} — ${e.hint}` : 'Unexpected Postfleet error — retry once; if it persists, report it.';
-    return { content: [{ type: 'text'; text: msg }], isError: true };
+    return { content: [{ type: 'text', text: msg }], isError: true };
   }
 };
 
