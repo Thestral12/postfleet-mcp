@@ -9,6 +9,25 @@ import { createMailbox, listMailboxes, listDomains, createDomain, verifyDomain, 
 // so tightening costs nothing — REST keeps compatibility for direct callers.
 const clientIdSchema = z.string().min(1).max(256).regex(/^(?!draft:)/);
 
+const attachmentFilename = z.string().min(1).max(255).optional()
+  .describe('Basename of the file — no path separators. Derived from the URL path, or "attachment", when omitted.');
+const attachmentContentType = z.string().max(127).optional()
+  .describe('MIME type. Defaults to application/octet-stream, or the URL response Content-Type.');
+const attachmentSchema = z.union([
+  z.object({
+    filename: attachmentFilename,
+    content: z.string().min(1).describe('File bytes as standard base64.'),
+    content_type: attachmentContentType,
+  }).strict(),
+  z.object({
+    filename: attachmentFilename,
+    url: z.string().min(1).max(2048).describe('HTTPS URL fetched at send time. Prefer this for files that would blow the request body.'),
+    content_type: attachmentContentType,
+  }).strict(),
+]);
+const attachmentsField = z.array(attachmentSchema).max(20).optional()
+  .describe('Optional files to attach. Each item is exactly one of base64 content or an HTTPS url. At most 20 files; 6 MB total inline, 30 MB total URL-backed.');
+
 /**
  * MCP tool annotations (spec: tools/list `annotations`). Declared structurally rather than
  * imported from the SDK so this package stays transport-agnostic and testable, matching
@@ -33,7 +52,7 @@ export type ToolAnnotations = {
 export type McpServerLike = {
   registerTool(
     name: string,
-    config: { description: string; inputSchema: Record<string, z.ZodTypeAny>; annotations?: ToolAnnotations },
+    config: { title: string; description: string; inputSchema: Record<string, z.ZodTypeAny>; annotations?: ToolAnnotations },
     cb: (args: unknown) => Promise<ToolResult>,
   ): void;
 };
@@ -49,7 +68,7 @@ const READ_ONLY: ToolAnnotations = { readOnlyHint: true, idempotentHint: true, o
 // claim by a different mechanism — see its own annotation.
 const SEND: ToolAnnotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
-const ok = (data: unknown): ToolResult => ({ content: [{ type: 'text', text: JSON.stringify(data) }] });
+const ok = (data: unknown): ToolResult => ({ content: [{ type: 'text'; text: JSON.stringify(data) }] });
 // Outer param is `unknown` (not `never`) so this matches McpServerLike's cb slot under strict
 // function-argument checking; the `never`-typed `fn` still lets each call site above stay
 // untyped (`wrap((a) => createMailbox(ctx, a))`) — the internal cast bridges the two.
@@ -59,7 +78,7 @@ const wrap = (fn: (args: never) => Promise<unknown>) => async (args: unknown): P
   } catch (e) {
     // spec §8: errors an agent can recover from — message + hint, never a stack trace
     const msg = e instanceof ToolError ? `${e.message} — ${e.hint}` : 'Unexpected Postfleet error — retry once; if it persists, report it.';
-    return { content: [{ type: 'text', text: msg }], isError: true };
+    return { content: [{ type: 'text'; text: msg }], isError: true };
   }
 };
 
@@ -71,6 +90,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'list_mailboxes',
     {
+      title: 'List mailboxes',
       description:
         'List the mailboxes you can use, newest first, each with its id and email address. Call this when you need a mailbox_id for any other tool, or to check whether you already have a mailbox before creating one — it is usually the first call in a workflow. Returns every mailbox on the account, or just your own if your API key is scoped to a single mailbox. An empty list means you have none yet — use create_mailbox.',
       inputSchema: {},
@@ -81,6 +101,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'create_mailbox',
     {
+      title: 'Create mailbox',
       description:
         'Create a NEW email mailbox this agent owns. Call this when list_mailboxes shows you have no suitable mailbox yet — mailboxes persist across sessions, so creating a second one for the same purpose strands mail in the first. Returns a working address immediately. Optional slug personalizes the address (agent-<slug>@...). To create the mailbox on a custom domain instead of the shared one (<slug>@yourdomain.com), pass a domain_id from list_domains — the domain must be verified.',
       inputSchema: {
@@ -102,6 +123,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'list_domains',
     {
+      title: 'List domains',
       description:
         "List the account's custom sending domains with their id, name, and verification status. Call this when you want to create a mailbox on a custom domain (pass the id of a verified domain as create_mailbox's domain_id), or to check whether a domain has finished verifying. Only status \"verified\" domains can host mailboxes; an empty list means only the shared platform domain is available.",
       inputSchema: {},
@@ -112,6 +134,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'create_domain',
     {
+      title: 'Create domain',
       description:
         'Register a NEW custom sending domain on this account. Call this when list_domains does not already include the domain you want to host mailboxes on. Returns the domain id, verification status, and the DNS records to add at your registrar. The domain stays pending until those records are in place — call verify_domain after publishing them. Custom domains require a paid plan. A name that is already registered with Postfleet or the email provider is a conflict, not a success; do not retry with the same name.',
       inputSchema: {
@@ -125,6 +148,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'verify_domain',
     {
+      title: 'Verify domain',
       description:
         'Re-check DNS for a custom domain and refresh its verification status. Call this when you have added the records returned by create_domain, or when list_domains still shows pending and you believe DNS has propagated. Returns the current status (pending, verified, or failed). Only a verified domain can be passed to create_mailbox as domain_id.',
       inputSchema: {
@@ -137,6 +161,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'send_email',
     {
+      title: 'Send email',
       description:
         'Send a new email from one of your mailboxes. Call this when starting a NEW conversation; to answer an email you received, use reply_email instead (it threads correctly). Pass a client_id (any unique string you make up) and reuse the SAME client_id if you retry after an error — that guarantees the email is sent at most once. If the mailbox requires human approval, the send is queued as a draft and returns {draft_id, status:"pending_approval"} instead of a message id — that is NOT a failure and must NOT be retried; the email goes out once a human approves it (check with list_drafts).',
       inputSchema: {
@@ -144,6 +169,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
         to: z.email().describe('Recipient email address.'),
         subject: z.string().max(200).describe('Subject line, max 200 characters.'),
         text: z.string().max(50_000).describe('Plain-text body, max 50,000 characters.'),
+        attachments: attachmentsField,
         client_id: clientIdSchema
           .describe('REQUIRED idempotency key — any unique string you invent for this send. Reuse the SAME value when retrying after an error and the email goes out at most once; a new value sends a second copy. Cannot start with "draft:".'),
       },
@@ -154,12 +180,14 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'reply_email',
     {
+      title: 'Reply to email',
       description:
         'Reply to an email you received. Call this when answering an existing message — recipient, subject, and conversation threading are derived automatically from the original. Pass a client_id (any unique string you make up) and reuse the SAME client_id if you retry after an error — that guarantees the reply is sent at most once. If the mailbox requires human approval, the reply is queued as a draft and returns {draft_id, status:"pending_approval"} instead of a message id — that is NOT a failure and must NOT be retried; it is sent once a human approves it (check with list_drafts).',
       inputSchema: {
         mailbox_id: z.uuid().describe('Id of the mailbox the original message arrived in.'),
         reply_to_message_id: z.uuid().describe('Id of the message being replied to, from list_inbox or read_email. Recipient, subject and threading are derived from it.'),
         text: z.string().max(50_000).describe('Plain-text reply body, max 50,000 characters.'),
+        attachments: attachmentsField,
         client_id: clientIdSchema
           .describe('REQUIRED idempotency key — any unique string you invent for this reply. Reuse the SAME value when retrying after an error and the reply goes out at most once; a new value sends a second copy. Cannot start with "draft:".'),
       },
@@ -170,6 +198,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'list_inbox',
     {
+      title: 'List inbox',
       description:
         'List recent messages in a mailbox, newest first, with comprehension status per message. Call this when checking what has arrived; use read_email for full content and extracted data.',
       inputSchema: {
@@ -183,6 +212,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'read_email',
     {
+      title: 'Read email',
       description:
         'Read one email in full: cleaned body, sanitization report (screened against known hidden-content patterns), classification, and data extracted to the mailbox schema. Call this when you need the content or extraction of a specific message.',
       inputSchema: {
@@ -195,6 +225,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'wait_for_email',
     {
+      title: 'Wait for email',
       description:
         'Block until a matching email arrives in a mailbox (or time out). Call this when you just sent an email and need the reply, or are expecting an inbound message — instead of polling list_inbox yourself. Returns the full message on match, or {timed_out:true}.',
       inputSchema: {
@@ -211,6 +242,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'create_draft',
     {
+      title: 'Create draft',
       description:
         'Prepare an email as a draft without sending it. Call this when you want to stage a message for later or for a human to review before it goes out — send it afterward with send_draft. Same fields as send_email, or omit to/subject and pass reply_to_message_id to draft a threaded reply. Returns the draft id with status "draft".',
       inputSchema: {
@@ -218,6 +250,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
         to: z.email().optional().describe('Recipient address. Omit only when passing reply_to_message_id, which supplies it.'),
         subject: z.string().max(200).optional().describe('Subject line. Omit only when passing reply_to_message_id, which supplies it.'),
         text: z.string().max(50_000).describe('Plain-text body, max 50,000 characters.'),
+        attachments: attachmentsField,
         reply_to_message_id: z.uuid().optional().describe('Optional. Draft a threaded reply to this message; recipient and subject are derived from it. Cannot be changed later with update_draft.'),
       },
       // Each call stages another draft, so retrying duplicates rather than no-ops.
@@ -228,6 +261,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'list_drafts',
     {
+      title: 'List drafts',
       description:
         'List the open drafts in a mailbox (status draft, pending_approval, or sending), newest first. Call this when you need to see messages you have staged or that are queued waiting on human approval, e.g. after a send returned status "pending_approval".',
       inputSchema: {
@@ -240,8 +274,9 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'get_draft',
     {
+      title: 'Get draft',
       description:
-        'Read one draft in full by its id: recipient, subject, body text, and current status. Call this when you need the content of a specific draft — e.g. to review what is queued for approval after list_drafts, or before editing it with update_draft.',
+        'Read one draft in full by its id: recipient, subject, body text, attachment metadata (filename, type, size, and url when the file is URL-backed — never the bytes), and current status. Call this when you need the content of a specific draft — e.g. to review what is queued for approval after list_drafts, or before editing it with update_draft.',
       inputSchema: {
         id: z.uuid().describe('Id of the draft to read, from create_draft or list_drafts.'),
       },
@@ -252,13 +287,15 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'update_draft',
     {
+      title: 'Update draft',
       description:
-        'Edit the to, subject, or text of a draft that has not been sent yet — omitted fields keep their current value. Call this when a draft needs changes, e.g. a human declined to approve it and you are revising it. The reply target cannot be changed (create a new draft to reply to a different message), and a draft that is already sending or sent can no longer be edited.',
+        'Edit the to, subject, text, or attachments of a draft that has not been sent yet — omitted fields keep their current value. Call this when a draft needs changes, e.g. a human declined to approve it and you are revising it. The reply target cannot be changed (create a new draft to reply to a different message), and a draft that is already sending or sent can no longer be edited.',
       inputSchema: {
         id: z.uuid().describe('Id of the draft to edit, from create_draft or list_drafts.'),
         to: z.email().optional().describe('Optional. New recipient address. Omit to keep the current one.'),
         subject: z.string().max(200).optional().describe('Optional. New subject line. Omit to keep the current one.'),
         text: z.string().max(50_000).optional().describe('Optional. New plain-text body. Omit to keep the current one.'),
+        attachments: attachmentsField.describe('Optional. Replace the draft attachments. Omit to keep the stored files; pass [] to clear them.'),
       },
       // Idempotent: writing the same field values twice leaves the draft in the same state.
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
@@ -268,6 +305,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'send_draft',
     {
+      title: 'Send draft',
       description:
         'Send a draft you prepared, by its id. Call this when a staged draft is ready to go out. If the mailbox requires human approval, this returns 202 {draft_id, status:"pending_approval"} — the draft is queued for a human to approve, which is NOT a failure and must NOT be retried; it is sent once approved. Otherwise it sends immediately and returns the message id.',
       inputSchema: {
@@ -284,6 +322,7 @@ export function registerTools(server: McpServerLike, ctx: ToolCtx): void {
   server.registerTool(
     'delete_draft',
     {
+      title: 'Delete draft',
       description:
         'Discard a draft by its id so it will never be sent. Call this when a staged or pending-approval message should be withdrawn — e.g. it is no longer needed or was created by mistake. A draft that is already sending or sent cannot be deleted.',
       inputSchema: {
