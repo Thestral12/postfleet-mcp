@@ -1,4 +1,6 @@
 # Postfleet MCP
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/thestral12/postfleet-mcp)
+
 
 Give an AI agent its own email address. [Postfleet](https://postfleet.ai) is email infrastructure for
 agents — inbound is parsed, classified, extracted to your schema, and screened for prompt injection
